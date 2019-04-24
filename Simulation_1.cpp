@@ -1,6 +1,7 @@
-/*
+ /*
 	See how to get rid of going through sideways problem consider cases form both vehicles Truck and Bus
 	need to give range for both
+	give road a width of 3 bike will get width 1 and others 2
 */
 #include <iostream>
 #include <cmath>
@@ -9,18 +10,18 @@
 #include <fstream>
 using namespace std;
 //#define RAND_MAX 1
-#define maxposvehicles 20
-#define maxtype 4
+#define maxposvehicles 25
+#define maxtype 5
 #define maxcolor 11
 #define maxvalues 1000
 class Road;
 class Vehicle;
 //Globals
 // Car 0 Bike 1 Bus 2 Truck 3
-char symbol[maxtype] = {'=','~',':','#'};
+char symbol[maxtype] = {'=','~',':','#','>'};
 string colour[maxcolor] = {"Red","Blue","Green","Yellow","Orange","Purple","Violet","Pink","Black","White","Grey"};
 int timestep = 1;	//seconds
-int duration = 75;
+int duration = 80;
 int maxvehicles;
 
 class Vehicle{
@@ -36,7 +37,7 @@ class Vehicle{
 	public: int releasetime;
 	//Road r; //Object of road on which it is
 	//Dynamic
-	public: int lane=0;
+	public: int ypos=0;
 	public: int speed=0;
 	public: int pos;
 
@@ -53,29 +54,33 @@ class Road{
 	public: int lightstate;
 	public: int lightpos;
 	public: int lanes;
-
+	public: int lanewidth;
 		//Can later inlclude vehicle array here as to facilitate more roads
-	public: int checkIfOccupied(int vpos,int vend, int vlane){
+	public: int checkIfOccupied(int veh,int vpos,int vend, int vypos, int vleft){
 		//cout<<"vpos :"<<vpos<<endl;
-		//cout<<"vlan :"<<vlane<<endl;
+		//cout<<"vlan :"<<vypos<<endl;
 		for(int i=0;i<maxvehicles;i++){	//need to check just rear half of vehicle
 		//	cout<<"vehlcepos :"<<(vehicles[i].type)<<" "<<vehicles[i].pos<<endl;
-		//	cout<<"vehlcelane :"<<(vehicles[i].type)<<" "<<vehicles[i].lane<<endl;
-	//cout<<(vehicles[i].lane/*+vehicles[i].width/2*/ == vlane)<<"  <---Lane pos-->"<<((vehicles[i].pos-(vehicles[i].length) < vpos)&&vehicles[i].pos>=vpos)<<endl;
+		//	cout<<"vehlcelane :"<<(vehicles[i].type)<<" "<<vehicles[i].ypos<<endl;
+	//cout<<(vehicles[i].ypos/*+vehicles[i].width/2*/ == vypos)<<"  <---Lane pos-->"<<((vehicles[i].pos-(vehicles[i].length) < vpos)&&vehicles[i].pos>=vpos)<<endl;
+			if(veh==i)continue;
 			bool front ((vehicles[i].pos-vehicles[i].length <= vpos)&&vehicles[i].pos>=vpos);
 			bool end = ((vehicles[i].pos <=vpos)&&vehicles[i].pos>=vend);
+			bool right ((vehicles[i].ypos-vehicles[i].width <= vypos)&&vehicles[i].ypos>=vypos);
+			bool left = ((vehicles[i].ypos <=vypos)&&vehicles[i].ypos>=vleft);
+	//cout<<"Vehicel"<<vehicles[i].type<<front<<left<<right<<endl;
 			//	front = vpos>vhi
-			if((front /*||end*/)&&(vehicles[i].lane/*+vehicles[i].width/2*/ == vlane||vehicles[i].lane/*-vehicles[i].width/2*/ == vlane))
+			if((front /*||end*/)&&(right||left))
 				return i;	//return vehicle id
 		}
 		
 			return -1;
 	}
 
-	public: void print(int vlane, int pos){
+	public: void print(int vypos, int pos){
 		bool flag=0;
 		for(int i=0;i<maxvehicles;i++){
-			if(((vehicles[i].pos-vehicles[i].length < pos)&&(vehicles[i].pos >= pos)) &&(vehicles[i].lane == vlane)&&vehicles[i].active){
+			if(((vehicles[i].pos-vehicles[i].length < pos)&&(vehicles[i].pos >= pos)) &&((vehicles[i].ypos-vehicles[i].width < vypos)&&(vehicles[i].ypos >= vypos))&&vehicles[i].active){
 				cout<<vehicles[i].type;
 				flag =1;
 			}
@@ -83,6 +88,8 @@ class Road{
 		if(!flag&&lightpos==pos)
 			//cout<<vehicles[i].pos;
 			cout<<"|";
+		else if(!flag&&vypos%lanewidth==0)
+			cout<<"_";
 		else if(!flag)
 			cout<<" ";
 		
@@ -105,26 +112,28 @@ class Road{
 			if(!vehicles[i].active)	//When vehicles not spawned
 				continue;
 
-			if(lightstate == 0 && vehicles[i].pos >= lightpos){
+			if(lightstate == 0 && vehicles[i].pos >= lightpos-1){
 				/*cout<<i<<" stop "<<endl;
 				cout<<i<<" posL "<<vehicles[i].pos<<endl;
 				cout<<i<<" speedL "<<vehicles[i].speed<<endl;
-				cout<<i<<" laneL "<<vehicles[i].lane<<endl;
+				cout<<i<<" laneL "<<vehicles[i].ypos<<endl;
 				*/
 				vehicles[i].speed =0;
 				continue;
 			}
-			if(checkIfOccupied(vehicles[i].pos+vehicles[i].speed*timestep,vehicles[i].pos+vehicles[i].speed*timestep-vehicles[i].length,vehicles[i].lane)>-1||flag){
+			if(checkIfOccupied(i,vehicles[i].pos+vehicles[i].speed*timestep,vehicles[i].pos+vehicles[i].speed*timestep-vehicles[i].length,vehicles[i].ypos,vehicles[i].ypos-vehicles[i].width)>-1||flag){
+		//	cout<<"hange lan"<<endl;
 				changeLane(i,flag);
 				if(vehicles[i].speed<vehicles[i].maxspeed)
 					vehicles[i].speed+=vehicles[i].acceleration*timestep;
 				/*
 				cout<<i<<" posC "<<vehicles[i].pos<<endl;
 				cout<<i<<" speedC "<<vehicles[i].speed<<endl;
-				cout<<i<<" laneC "<<vehicles[i].lane<<endl;
+				cout<<i<<" laneC "<<vehicles[i].ypos<<endl;
 				*/
 			}
 			else {
+		//cout<<"move ahea"<<endl;
 				//cout<<"really"<<vehicles[i].pos<<endl;
 				vehicles[i].pos+=vehicles[i].speed*timestep;
 				if(vehicles[i].speed<vehicles[i].maxspeed)
@@ -133,7 +142,7 @@ class Road{
 
 				cout<<i<<" pos "<<vehicles[i].pos<<endl;
 				cout<<i<<" speed "<<vehicles[i].speed<<endl;
-				cout<<i<<" lane "<<vehicles[i].lane<<endl;
+				cout<<i<<" ypos "<<vehicles[i].ypos<<endl;
 				*/
 			}
 		}
@@ -151,13 +160,12 @@ class Road{
 			flag =0;
 		
 		if(vehicles[i].flag ==0){
-			if(checkIfOccupied(vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].lane+1/*remove 1+vehicles[i].width/2*/)==-1&&(vehicles[i].lane+1/*vehicles[i].width/2*/<=lanes)&&flag){
-
-				vehicles[i].lane+=1;//vehicles[i].width/2;
+			if(checkIfOccupied(i,vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].ypos+1,vehicles[i].ypos+1-vehicles[i].width/*remove 1+vehicles[i].width/2*/)==-1&&(vehicles[i].ypos+1/*vehicles[i].width/2*/<=width)&&flag){
+				vehicles[i].ypos+=1;//vehicles[i].width/2;
 			}
-			else if(checkIfOccupied(vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].lane-1/*-vehicles[i].width/2*/)==-1&&(vehicles[i].lane-1/*vehicles[i].width/2*/ >0)&&flag){
+			else if(checkIfOccupied(i,vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].ypos-1,vehicles[i].ypos+1-vehicles[i].width/*-vehicles[i].width/2*/)==-1&&(vehicles[i].ypos-1-vehicles[i].width/*vehicles[i].width/2*/ >0)&&flag){
 			//	vehicles[i].flag =1;
-				vehicles[i].lane-=1;//vehicles[i].width/2;
+				vehicles[i].ypos-=1;//vehicles[i].width/2;
 			}
 			else{
 //				if(f =0)
@@ -167,11 +175,11 @@ class Road{
 		}
 
 		if(vehicles[i].flag ==1){
-			if(checkIfOccupied(vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].lane-1/*-vehicles[i].width/2*/)==-1&&(vehicles[i].lane-1/*vehicles[i].width/2*/ >0)&&flag){
-				vehicles[i].lane-=1;//vehicles[i].width/2;
+			if(checkIfOccupied(i,vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].ypos-1,vehicles[i].ypos+1-vehicles[i].width/*-vehicles[i].width/2*/)==-1&&(vehicles[i].ypos-1-vehicles[i].width/*vehicles[i].width/2*/ >0)&&flag){
+				vehicles[i].ypos-=1;//vehicles[i].width/2;
 			}
-			else if(checkIfOccupied(vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].lane+1/*remove 1+vehicles[i].width/2*/)==-1&&(vehicles[i].lane+1/*vehicles[i].width/2*/<=lanes)&&flag){
-				vehicles[i].lane+=1;//vehicles[i].width/2;
+			else if(checkIfOccupied(i,vehicles[i].pos,vehicles[i].pos-vehicles[i].length,vehicles[i].ypos+1,vehicles[i].ypos+1-vehicles[i].width/*remove 1+vehicles[i].width/2*/)==-1&&(vehicles[i].ypos+1/*vehicles[i].width/2*/<=width)&&flag){
+				vehicles[i].ypos+=1;//vehicles[i].width/2;
 				vehicles[i].flag=0;
 			}
 
@@ -197,6 +205,8 @@ int vehicletype (string name){
 		return 2;
 	else if(name =="Truck")
 		return 3;
+	else if(name =="Auto")
+		return 4;
 	else
 		return 0;
 }
@@ -269,7 +279,7 @@ void configure(string name,int *arr){
 void addVehicle(Vehicle *v,int type,int color,int length , int width,int pos,int lane,int maxspeed,int releasetime){
 	v->active = false;
 	v->pos =pos;
-	v->lane = lane;
+	v->ypos = (lane-1)*(road.lanewidth)+width;
 	v->releasetime =releasetime;
 	v->maxspeed = maxspeed;
 	v->speed = v->maxspeed;
@@ -287,29 +297,41 @@ void spawnVehicles(int time){
 			vehicles[i].active =true;
 	}
 }
+
+/*
+	Method to Print state of the road at the given time instant
+*/
 void printState(int time){
 	for(int i=1;i<=road.length;i++){
 		if(i==road.lightpos)
 			cout<<"|";
 		else
-		cout<<"-";
+		cout<<"~";
 	}
 	cout<<endl;
-	for(int i=1;i<=road.lanes;i++){
+	//cout<<"bate dilo ki yaar ajawani aake tumhe samjhayen yara tu jaane na aaaa tu jaane naaaaa"<<endl<<road.lanes<<endl<<road.lanewidth<<endl;
+	for(int i=1;i<=road.width;i++){
+		//for(int k=0;k<road.lanewidth;k++){
 		for(int j=1;j<=road.length;j++){
 			road.print(i,j);
+			//cout<<"hiaye"<<endl;
 		}
 		cout<<endl;
+		//}
 	}
 	for(int i=1;i<=road.length;i++){
 		if(i==road.lightpos)
 			cout<<"|";
 		else
-		cout<<"-";
+		cout<<"~";
 	}
 	cout<<endl;
 	cout<<"Time = " <<time<<endl;
 }
+
+/*
+	Specifies interval between printing each step
+*/
 void delay ( int mseconds ) 
 { 
   clock_t endwait; 
@@ -317,6 +339,22 @@ void delay ( int mseconds )
   while (clock() < endwait) {} 
 } 
 int main(int argc, char** argv){
+/*		string name;
+		cin>>name;
+		unsigned int seed = clock();
+		srand(seed);
+		int random = rand();
+		while(name!="exit"){
+		unsigned int seed = clock();
+		srand(seed);
+		int random = rand();
+		if(name =="Rohan"||name =="Rohan Dahiya"||name =="Dahiya")
+			cout<<"Padhle Thoda"<<endl;
+		else
+			cout<<name<<" marks "<<random%60<<endl;
+		cin>>name;
+		}
+		return 0;*/
 	int stoptime,gotime;
 	int readData[maxvalues]={0};	//to store data read from config file
 	if(argc<1){
@@ -333,6 +371,7 @@ int main(int argc, char** argv){
 		road.width =readData[2];
 		road.lightpos = readData[3];
 		road.lanes = readData[4];
+		road.lanewidth=road.width/road.lanes;
 		maxvehicles = readData[5];
 		timestep = readData[6];
 		duration = readData[7];
