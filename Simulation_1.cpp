@@ -339,22 +339,6 @@ void delay ( int mseconds )
   while (clock() < endwait) {} 
 } 
 int main(int argc, char** argv){
-/*		string name;
-		cin>>name;
-		unsigned int seed = clock();
-		srand(seed);
-		int random = rand();
-		while(name!="exit"){
-		unsigned int seed = clock();
-		srand(seed);
-		int random = rand();
-		if(name =="Rohan"||name =="Rohan Dahiya"||name =="Dahiya")
-			cout<<"Padhle Thoda"<<endl;
-		else
-			cout<<name<<" marks "<<random%60<<endl;
-		cin>>name;
-		}
-		return 0;*/
 	int stoptime,gotime;
 	int readData[maxvalues]={0};	//to store data read from config file
 	if(argc<1){
