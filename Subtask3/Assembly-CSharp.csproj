@@ -61,6 +61,7 @@
     <Compile Include="Assets\FollowThePath.cs" />
     <Compile Include="Assets\GameControl.cs" />
     <Compile Include="Assets\QuestionBank.cs" />
+    <Compile Include="Assets\response.cs" />
     <Reference Include="Unity.TextMeshPro.Editor">
       <HintPath>F:/Snake and Ladder/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
     </Reference>
